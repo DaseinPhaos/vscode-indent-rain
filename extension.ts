@@ -17,35 +17,40 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Error color gets shown when tabs aren't right,
   //  e.g. when you have your tabs set to 2 spaces but the indent is 3 spaces
-  const error_color = vscode.workspace.getConfiguration('indentRainbow')['errorColor'] || "rgba(128,32,32,0.3)";
+  const style = vscode.workspace.getConfiguration('indentRain')['style'] || 'dashed';
+
+  const error_color = vscode.workspace.getConfiguration('indentRain')['errorColor'] || "rgba(128,32,32,0.3)";
   const error_decoration_type = vscode.window.createTextEditorDecorationType({
-    backgroundColor: error_color
+    textDecoration: `line-through ${style} ${error_color}`
   });
 
-  const tabmix_color = vscode.workspace.getConfiguration('indentRainbow')['tabmixColor'] || "";
+  const tabmix_color = vscode.workspace.getConfiguration('indentRain')['tabmixColor'] || "";
   const tabmix_decoration_type = "" !== tabmix_color ? vscode.window.createTextEditorDecorationType({
-    backgroundColor: tabmix_color
+    textDecoration: `line-through ${style} ${tabmix_color}`
   }) : null;
 
-  const ignoreLinePatterns = vscode.workspace.getConfiguration('indentRainbow')['ignoreLinePatterns'] || [];
+  const ignoreLinePatterns = vscode.workspace.getConfiguration('indentRain')['ignoreLinePatterns'] || [];
 
   // Colors will cycle through, and can be any size that you want
-  const colors = vscode.workspace.getConfiguration('indentRainbow')['colors'] || [
-    "rgba(255,255,64,0.07)",
-    "rgba(127,255,127,0.07)",
-    "rgba(255,127,255,0.07)",
-    "rgba(79,236,236,0.07)"
+  const colors = vscode.workspace.getConfiguration('indentRain')['colors'] || [
+    "rgb(101, 132, 179)",
+    "rgb(220, 157, 94)",
+    "rgb(145, 205, 187)",
+    "rgb(228, 223, 184)"
   ];
 
   // Loops through colors and creates decoration types for each one
   colors.forEach((color, index) => {
     decorationTypes[index] = vscode.window.createTextEditorDecorationType({
-      backgroundColor: color
+      textDecoration: `line-through ${style} ${color}`
+      // borderColor: color,
+      // borderStyle: `none none ${style} none`,
+      // borderWidth: '1px',
     });
   });
 
   // loop through ignore regex strings and convert to valid RegEx's.
-  ignoreLinePatterns.forEach((ignorePattern,index) => {
+  ignoreLinePatterns.forEach((ignorePattern, index) => {
     if (typeof ignorePattern === 'string') {
       //parse the string for a regex
       var regParts = ignorePattern.match(/^\/(.*?)\/([gim]*)$/);
@@ -59,7 +64,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
   });
 
-  if(activeEditor) {
+  if (activeEditor) {
     indentConfig();
   }
 
@@ -79,7 +84,7 @@ export function activate(context: vscode.ExtensionContext) {
   }, null, context.subscriptions);
 
   vscode.workspace.onDidChangeTextDocument(event => {
-    if(activeEditor) {
+    if (activeEditor) {
       indentConfig();
     }
 
@@ -89,14 +94,14 @@ export function activate(context: vscode.ExtensionContext) {
   }, null, context.subscriptions);
 
   function isEmptyObject(obj) {
-      return Object.getOwnPropertyNames(obj).length === 0;
+    return Object.getOwnPropertyNames(obj).length === 0;
   }
 
   function indentConfig() {
-    var skiplang = vscode.workspace.getConfiguration('indentRainbow')['ignoreErrorLanguages'] || [];
+    var skiplang = vscode.workspace.getConfiguration('indentRain')['ignoreErrorLanguages'] || [];
     skipAllErrors = false;
-    if(skiplang.length !== 0) {
-      if(skiplang.indexOf('*') !== -1 || skiplang.indexOf(currentLanguageId) !== -1) {
+    if (skiplang.length !== 0) {
+      if (skiplang.indexOf('*') !== -1 || skiplang.indexOf(currentLanguageId) !== -1) {
         skipAllErrors = true;
       }
     }
@@ -104,27 +109,27 @@ export function activate(context: vscode.ExtensionContext) {
 
   function checkLanguage() {
     if (activeEditor) {
-      if(currentLanguageId !== activeEditor.document.languageId) {
-        var inclang = vscode.workspace.getConfiguration('indentRainbow')['includedLanguages'] || [];
-        var exclang = vscode.workspace.getConfiguration('indentRainbow')['excludedLanguages'] || [];
+      if (currentLanguageId !== activeEditor.document.languageId) {
+        var inclang = vscode.workspace.getConfiguration('indentRain')['includedLanguages'] || [];
+        var exclang = vscode.workspace.getConfiguration('indentRain')['excludedLanguages'] || [];
 
         currentLanguageId = activeEditor.document.languageId;
         doIt = true;
-        if(inclang.length !== 0) {
-          if(inclang.indexOf(currentLanguageId) === -1) {
+        if (inclang.length !== 0) {
+          if (inclang.indexOf(currentLanguageId) === -1) {
             doIt = false;
           }
         }
 
-        if(doIt && exclang.length !== 0) {
-          if(exclang.indexOf(currentLanguageId) !== -1) {
+        if (doIt && exclang.length !== 0) {
+          if (exclang.indexOf(currentLanguageId) !== -1) {
             doIt = false;
           }
         }
       }
     }
 
-    if( clearMe && ! doIt) {
+    if (clearMe && !doIt) {
       // Clear decorations when language switches away
       var decor: vscode.DecorationOptions[] = [];
       for (let decorationType of decorationTypes) {
@@ -143,7 +148,7 @@ export function activate(context: vscode.ExtensionContext) {
     if (timeout) {
       clearTimeout(timeout);
     }
-    var updateDelay = vscode.workspace.getConfiguration('indentRainbow')['updateDelay'] || 100;
+    var updateDelay = vscode.workspace.getConfiguration('indentRain')['updateDelay'] || 100;
     timeout = setTimeout(updateDecorations, updateDelay);
   }
 
@@ -153,11 +158,11 @@ export function activate(context: vscode.ExtensionContext) {
     }
     var regEx = /^[\t ]+/gm;
     var text = activeEditor.document.getText();
-    var tabsize = activeEditor.options.tabSize;
+    var tabsize = +(activeEditor.options.tabSize);
     var tabs = " ".repeat(tabsize);
     const ignoreLines = [];
     let error_decorator: vscode.DecorationOptions[] = [];
-    let tabmix_decorator: vscode.DecorationOptions[] = tabmix_decoration_type ? []: null;
+    let tabmix_decorator: vscode.DecorationOptions[] = tabmix_decoration_type ? [] : null;
     let decorators = [];
     decorationTypes.forEach(() => {
       let decorator: vscode.DecorationOptions[] = [];
@@ -167,7 +172,7 @@ export function activate(context: vscode.ExtensionContext) {
     var match;
     var ignore;
 
-    if(!skipAllErrors) {
+    if (!skipAllErrors) {
       /**
        * Checks text against ignore regex patterns from config(or default).
        * stores the line positions of those lines in the ignoreLines array.
@@ -181,7 +186,7 @@ export function activate(context: vscode.ExtensionContext) {
       });
     }
 
-    var re = new RegExp("\t","g");
+    var re = new RegExp("\t", "g");
     let defaultIndentCharRegExp = null;
 
     while (match = regEx.exec(text)) {
@@ -197,7 +202,7 @@ export function activate(context: vscode.ExtensionContext) {
        * Checks for lines being ignored in ignoreLines array ( `skip` Boolran)
        * before considering the line an error.
        */
-      if(!skip && ma % tabsize !== 0) {
+      if (!skip && ma % tabsize !== 0) {
         var startPos = activeEditor.document.positionAt(match.index);
         var endPos = activeEditor.document.positionAt(match.index + match[0].length);
         var decoration = { range: new vscode.Range(startPos, endPos), hoverMessage: null };
@@ -207,25 +212,25 @@ export function activate(context: vscode.ExtensionContext) {
         var l = m.length;
         var o = 0;
         var n = 0;
-        while(n < l) {
+        while (n < l) {
           const s = n;
           var startPos = activeEditor.document.positionAt(match.index + n);
-          if(m[n] === "\t") {
+          if (m[n] === "\t") {
             n++;
           } else {
-            n+=activeEditor.options.tabSize;
+            n += tabsize;
           }
           var endPos = activeEditor.document.positionAt(match.index + n);
           var decoration = { range: new vscode.Range(startPos, endPos), hoverMessage: null };
-          var sc=0;
-          var tc=0;
+          var sc = 0;
+          var tc = 0;
           if (!skip && tabmix_decorator) {
             // counting (split is said to be faster than match()
             // only do it if we don't already skip all errors
-            var tc=(thematch.split("\t").length - 1)
-            if(tc) {
+            var tc = (thematch.split("\t").length - 1)
+            if (tc) {
               // only do this if we already have some tabs
-              var sc=(thematch.split(" ").length - 1)
+              var sc = (thematch.split(" ").length - 1)
             }
             // if we have (only) "spaces" in a "tab" indent file we
             // just ignore that, because we don't know if there
@@ -233,7 +238,7 @@ export function activate(context: vscode.ExtensionContext) {
             // If you (yes you!) know how to find this out without
             // infering this from the file, speak up :)
           }
-          if(sc>0 && tc>0) {
+          if (sc > 0 && tc > 0) {
             tabmix_decorator.push(decoration);
           } else {
             let decorator_index = o % decorators.length;
